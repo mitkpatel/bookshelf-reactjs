@@ -2,18 +2,32 @@ import { useState, useEffect, React } from "react";
 
 const DisplayBook = () => {
   const [books, setBooks] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [result, setResult] = useState(false);
   const [sorting, setSorting] = useState({
     title: { order: "asc" },
-    publishYear: { order: "asc" },
+    first_publish_year: { order: "asc" },
   });
   const [searchValue, setSearchValue] = useState("");
+  const [error, setError] = useState("");
   const columns = ["Title", "Book Cover", "Author", "Published Date"];
+
+  useEffect(() => {
+    const url = `https://openlibrary.org/search.json?q=${searchValue}`;
+    fetch(url)
+      .then((res) => res.json())
+      .then((data) => {
+        setBooks(data.docs);
+        setLoading(false);
+        if (data.docs.length) setResult(true);
+      })
+      .catch((error) => console.log(error));
+  }, [searchValue]);
 
   const sortTable = (newSorting) => {
     setSorting(newSorting);
     const { column, order } = newSorting;
     const sortedBooks = [...books];
-    console.log("col", order);
     sortedBooks.sort((a, b) => {
       if (column === "title") {
         if (order === "asc") {
@@ -39,16 +53,6 @@ const DisplayBook = () => {
     setSearchValue(newSearchValue);
   };
 
-  useEffect(() => {
-    const url = `https://openlibrary.org/search.json?q=${searchValue}`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        setBooks(data.docs);
-      })
-      .catch((error) => console.log(error));
-  }, [searchValue]);
-
   const HeaderCell = ({ column, sorting, sortTable }) => {
     const isDescSorting =
       (sorting.column === column.toLowerCase() ||
@@ -59,7 +63,7 @@ const DisplayBook = () => {
         sorting.column === "first_publish_year") &&
       sorting.order === "asc";
     const futureSortingOrder = isDescSorting ? "asc" : "desc";
-    const arrow = isDescSorting ? "▼" : "▲";
+    let arrow = isDescSorting ? "▼" : "▲";
 
     const handleClick = () => {
       if (column === "Title") {
@@ -84,8 +88,8 @@ const DisplayBook = () => {
         onClick={handleClick}
       >
         {column}
-        {console.log("Publicsh", isDescSorting, isAscSorting, column)}
-        {isDescSorting || isAscSorting ? (
+        {(isDescSorting || isAscSorting) &&
+        (column === "Title" || column === "Published Date") ? (
           <span className="ml-1">{arrow}</span>
         ) : (
           ""
@@ -93,9 +97,10 @@ const DisplayBook = () => {
       </th>
     );
   };
+
   const Header = ({ columns, sorting, sortTable }) => {
     const toggleOrder = (column) => {
-      if (sorting.column === column) {
+      if (sorting?.column === column) {
         setSorting({
           column,
           order: sorting.order === "asc" ? "desc" : "asc",
@@ -129,13 +134,13 @@ const DisplayBook = () => {
           <tr key={record.key}>
             <td className="p-4 border">{record.title}</td>
             <td className="p-4 border">
-              {record.cover_i && (
+              {
                 <img
                   src={`http://covers.openlibrary.org/b/id/${record.cover_i}-M.jpg`}
                   alt={record.title}
                   className="max-h-24 border"
                 />
-              )}
+              }
             </td>
             <td className="p-4 border">
               {record.author_name && record.author_name.join(", ")}
@@ -160,7 +165,7 @@ const DisplayBook = () => {
     return (
       <form
         onSubmit={handleSubmit}
-        className="flex flex-col sm:flex-row items-center"
+        className="flex flex-col sm:flex-row items-center justify-center"
       >
         <input
           type="search"
@@ -180,18 +185,32 @@ const DisplayBook = () => {
   };
 
   return (
-    <div className="w-full text-center p-4">
+    <div className="w-full h-fit text-center p-4">
       <p className="text-xl font-bold">List of books</p>
       <SearchBar searchTable={searchTable} />
-      <p className="text-md font-bold mt-3 text-start my-2">
-        To sort by Title and Publish date, just click on column name
-      </p>
-      <div className="relative overflow-x-auto">
-        <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400 rounded-md border">
-          <Header columns={columns} sorting={sorting} sortTable={sortTable} />
-          <Content entries={books} />
-        </table>
-      </div>
+      {result ? (
+        <div>
+          <p className="text-md font-bold mt-3 text-start my-2">
+            To sort by Title and Publish date, just click on column name
+          </p>
+          <div className="relative overflow-x-auto">
+            <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400 rounded-md border">
+              <Header
+                columns={columns}
+                sorting={sorting}
+                sortTable={sortTable}
+              />
+              <Content entries={books} />
+            </table>
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-row items-center justify-center">
+          <div className="w-full sm:w-1/3 my-2 bg-red-500 rounded-md text-black text-base">
+            {error}
+          </div>
+        </div>
+      )}
     </div>
   );
 };
