@@ -2,14 +2,13 @@ import { useState, useEffect, React } from "react";
 
 const DisplayBook = () => {
   const [books, setBooks] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [result, setResult] = useState(false);
   const [sorting, setSorting] = useState({
     title: { order: "asc" },
     first_publish_year: { order: "asc" },
   });
   const [searchValue, setSearchValue] = useState("");
-  const [error, setError] = useState("");
+  const error = "";
   const columns = ["Title", "Book Cover", "Author", "Published Date"];
 
   useEffect(() => {
@@ -18,7 +17,6 @@ const DisplayBook = () => {
       .then((res) => res.json())
       .then((data) => {
         setBooks(data.docs);
-        setLoading(false);
         if (data.docs.length) setResult(true);
       })
       .catch((error) => console.log(error));
