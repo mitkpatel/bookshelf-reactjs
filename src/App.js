@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Search from "./components/Search";
 import DisplayBook from "./components/DisplayBook";
 import axios from "axios";
@@ -10,10 +10,10 @@ function App() {
 
   const handleSearch = (query) => {
     setIsLoading(true); // Set isLoading to true when search request is made
-    axios
-      .get(`http://openlibrary.org/search.json?q=${query}`)
-      .then((response) => {
-        setBooks(response.data.docs);
+    fetch(`http://openlibrary.org/search.json?q=${query}`)
+      .then((response) => response.json())
+      .then((data) => {
+        setBooks(data.docs);
         setIsLoading(false); // Set isLoading to false when response is received
       })
       .catch((error) => {
