@@ -1,216 +1,106 @@
-import { useState, useEffect, React } from "react";
+import React, { useState } from "react";
+import "../App.css";
 
-const DisplayBook = () => {
-  const [books, setBooks] = useState([]);
-  const [result, setResult] = useState(false);
-  const [sorting, setSorting] = useState({
-    title: { order: "asc" },
-    first_publish_year: { order: "asc" },
-  });
-  const [searchValue, setSearchValue] = useState("");
-  const error = "";
-  const columns = ["Title", "Book Cover", "Author", "Published Date"];
+function DisplayBook(props) {
+  const [currentPage, setCurrentPage] = useState(1);
+  const [recordsPerPage] = useState(10);
 
-  useEffect(() => {
-    const url = `https://openlibrary.org/search.json?q=${searchValue}`;
-    fetch(url)
-      .then((res) => res.json())
-      .then((data) => {
-        setBooks(data.docs);
-        if (data.docs.length) setResult(true);
-      })
-      .catch((error) => console.log(error));
-  }, [searchValue]);
-
-  const sortTable = (newSorting) => {
-    setSorting(newSorting);
-    const { column, order } = newSorting;
-    const sortedBooks = [...books];
-    sortedBooks.sort((a, b) => {
-      if (column === "title") {
-        if (order === "asc") {
-          return a.title.localeCompare(b.title);
-        } else {
-          return b.title.localeCompare(a.title);
-        }
-      } else if (column === "first_publish_year") {
-        if (order === "asc") {
-          return a.first_publish_year - b.first_publish_year;
-        } else {
-          return b.first_publish_year - a.first_publish_year;
-        }
-      } else {
-        return 0;
-      }
-    });
-
-    setBooks(sortedBooks);
-  };
-
-  const searchTable = (newSearchValue) => {
-    setSearchValue(newSearchValue);
-  };
-
-  const HeaderCell = ({ column, sorting, sortTable }) => {
-    const isDescSorting =
-      (sorting.column === column.toLowerCase() ||
-        sorting.column === "first_publish_year") &&
-      sorting.order === "desc";
-    const isAscSorting =
-      (sorting.column === column.toLowerCase() ||
-        sorting.column === "first_publish_year") &&
-      sorting.order === "asc";
-    const futureSortingOrder = isDescSorting ? "asc" : "desc";
-    let arrow = isDescSorting ? "▼" : "▲";
-
-    const handleClick = () => {
-      if (column === "Title") {
-        sortTable({
-          column: "title",
-          order: futureSortingOrder,
-          type: "string",
-        });
-      } else if (column === "Published Date") {
-        sortTable({
-          column: "first_publish_year",
-          order: futureSortingOrder,
-          type: "number",
-        });
-      }
-    };
-
-    return (
-      <th
-        key={column}
-        className="px-2 py-3 sm:px-4 sm:py-4 md:px-6 md:py-3 first:rounded-tl-md last:rounded-tr-md cursor-pointer"
-        onClick={handleClick}
-      >
-        {column}
-        {(isDescSorting || isAscSorting) &&
-        (column === "Title" || column === "Published Date") ? (
-          <span className="ml-1">{arrow}</span>
-        ) : (
-          ""
-        )}
-      </th>
-    );
-  };
-
-  const Header = ({ columns, sorting, sortTable }) => {
-    const toggleOrder = (column) => {
-      if (sorting?.column === column) {
-        setSorting({
-          column,
-          order: sorting.order === "asc" ? "desc" : "asc",
-        });
-      } else {
-        setSorting({ column, order: "asc" });
-      }
-    };
-
-    return (
-      <thead className="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-100">
-        <tr className="text-center">
-          {columns.map((column) => (
-            <HeaderCell
-              key={column}
-              column={column}
-              sorting={sorting}
-              sortTable={sortTable}
-              toggleOrder={toggleOrder}
-            />
-          ))}
-        </tr>
-      </thead>
-    );
-  };
-
-  const Content = ({ entries }) => {
-    return (
-      <tbody>
-        {entries.map((record) => (
-          <tr key={record.key}>
-            <td className="p-4 border">{record.title}</td>
-            <td className="p-4 border">
-              {
-                <img
-                  src={`http://covers.openlibrary.org/b/id/${record.cover_i}-M.jpg`}
-                  alt={record.title}
-                  className="max-h-24 border"
-                />
-              }
-            </td>
-            <td className="p-4 border">
-              {record.author_name && record.author_name.join(", ")}
-            </td>
-            <td className="p-4 border">
-              {record.publish_date && record.publish_date.join(", ")}
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    );
-  };
-
-  const SearchBar = ({ searchTable }) => {
-    const [searchValue, setSearchValue] = useState("");
-    const handleSubmit = (e) => {
-      e.preventDefault();
-      searchTable(searchValue);
-      setSearchValue("");
-    };
-
-    return (
-      <form
-        onSubmit={handleSubmit}
-        className="flex flex-col sm:flex-row items-center justify-center"
-      >
-        <input
-          type="search"
-          className="w-full sm:w-1/2 px-4 py-2 rounded-md border-black border-2 text-gray-800 my-2 sm:mr-3"
-          placeholder="Search by book name..."
-          value={searchValue}
-          onChange={(e) => setSearchValue(e.target.value)}
-        />
-        <button
-          className="bg-blue-500 w-full sm:w-20 h-12 text-white rounded-lg my-2 sm:my-0 sm:mx-3"
-          onClick={handleSubmit}
-        >
-          Search
-        </button>
-      </form>
-    );
-  };
+  const indexOfLastRecord = currentPage * recordsPerPage;
+  const indexOfFirstRecord = indexOfLastRecord - recordsPerPage;
+  const currentRecords = props.books.slice(
+    indexOfFirstRecord,
+    indexOfLastRecord
+  );
+  const paginate = (pageNumber) => setCurrentPage(pageNumber);
 
   return (
-    <div className="w-full h-fit text-center p-4">
-      <p className="text-xl font-bold">List of books</p>
-      <SearchBar searchTable={searchTable} />
-      {result ? (
-        <div>
-          <p className="text-md font-bold mt-3 text-start my-2">
-            To sort by Title and Publish date, just click on column name
-          </p>
-          <div className="relative overflow-x-auto">
-            <table className="w-full text-sm text-left text-gray-500 dark:text-gray-400 rounded-md border">
-              <Header
-                columns={columns}
-                sorting={sorting}
-                sortTable={sortTable}
+    <div className="g-4 bg-light p-3">
+      <div className="row row-cols-1 row-cols-md-3 ">
+        {currentRecords.map((book, index) => (
+          <div key={index}>
+            <div className="card m-5 mb-0 mt-2">
+              <img
+                src={`http://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`}
+                alt={book.title}
+                height="300px"
+                className="card-img"
               />
-              <Content entries={books} />
-            </table>
+              <div className="card-body">
+                <h5 className="card-title">{book.title}</h5>
+                <p className="card-text">
+                  Author:{" "}
+                  {book.author_name ? book.author_name.join(", ") : "Unknown"}
+                </p>
+                <p className="card-text">
+                  Published: {book.first_publish_year || "Unknown"}
+                </p>
+              </div>
+            </div>
           </div>
+        ))}
+      </div>
+      <Pagination
+        currentPage={currentPage}
+        recordsPerPage={recordsPerPage}
+        totalRecords={props.books.length}
+        paginate={paginate}
+      />
+    </div>
+  );
+}
+
+export default DisplayBook;
+
+const Pagination = ({
+  currentPage,
+  recordsPerPage,
+  totalRecords,
+  paginate,
+}) => {
+  const pageNumbers = [];
+  for (let i = 1; i <= Math.ceil(totalRecords / recordsPerPage); i++) {
+    pageNumbers.push(i);
+  }
+  return (
+    <div className="Page pb-5">
+      <div className="pagination-wrapper me-5">
+        <div className="container h-auto flex justify-content-end">
+          <ul className="pagination justify-content-end">
+            <li className={`page-item${currentPage === 1 ? " disabled" : ""}`}>
+              <button
+                className="page-link"
+                onClick={() => paginate(currentPage - 1)}
+              >
+                Previous
+              </button>
+            </li>
+            {pageNumbers.map((number) => (
+              <li
+                key={number}
+                className={`page-item${
+                  currentPage === number ? " active" : ""
+                }`}
+              >
+                <button className="page-link" onClick={() => paginate(number)}>
+                  {number}
+                </button>
+              </li>
+            ))}
+            <li
+              className={`page-item${
+                currentPage === pageNumbers.length ? " disabled" : ""
+              }`}
+            >
+              <button
+                className="page-link"
+                onClick={() => paginate(currentPage + 1)}
+              >
+                Next
+              </button>
+            </li>
+          </ul>
         </div>
-      ) : (
-        <div className="flex flex-row items-center justify-center">
-          <div className="w-full sm:w-1/3 my-2 bg-red-500 rounded-md text-black text-base">
-            {error}
-          </div>
-        </div>
-      )}
+      </div>
     </div>
   );
 };
-
-export default DisplayBook;
